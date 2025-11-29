@@ -1,3 +1,4 @@
+# **QUARTO TEMPLATE**
 
 Repositori ini adalah template buku Quarto (mirip Bookdown) yang bisa digunakan oleh mahasiswa, atau siapa pun yang ingin membuat buku digital, modul, laporan panjang, atau dokumentasi proyek. Template ini dibuat sebagai portofolio belajar dan dapat digunakan ulang dengan mudah.
 Template ini sudah dipaketkan dengan struktur folder yang rapi, file chapter, file referensi, serta stylesheet yang bisa dikustomisasi.
