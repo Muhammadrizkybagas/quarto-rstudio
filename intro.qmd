@@ -1,0 +1,195 @@
+---
+title: "Comparison of Probabilistic Model"
+author:
+    - name: Fika Irsandi Desvyanti 
+    - name: Muhammad Rizky Bagas 
+    - name: M. Ragil Rizky Mulya 
+    - name: Nova Sitorus
+        
+date: today
+format: html
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(DT)
+
+```
+
+<img class="fotbar" src="img/fotbar.jpg">
+
+# Pengertian
+
+Model probabilistik → model yang membantu kita memahami hal-hal yang masih penuh ketidakpastian dengan melihat peluang terjadinya suatu peristiwa. Dalam machine learning, model ini digunakan dalam klasifikasi probabilistik, yaitu cara memprediksi suatu kategori sekaligus menunjukkan seberapa besar kemungkinan prediksi itu benar. Pendekatan ini sangat berguna ketika kita perlu mempertimbangkan risiko, misalnya saat memprediksi cuaca atau mendeteksi penipuan [@probabilistik2024]-[@siregar2025peng]. 
+
+> Dalam penelitian ini, model probabilistik digunakan untuk memperkirakan apakah besok akan hujan atau tidak dari kondisi hari ini, lengkap dengan berapa besar peluang terjadinya hujan tersebut, sehingga hasilnya lebih jelas dan membantu pengambilan keputusan. 
+
+---
+
+
+# Pengenalan Dataset
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+load_weather_data <- function() {
+  
+  url <- "https://raw.githubusercontent.com/gchoi/Dataset/master/weatherAUS.csv"
+  df <- read_csv(url, show_col_types = FALSE)
+  
+  cols <- c("MinTemp", "MaxTemp", "Rainfall",
+            "Humidity9am", "Humidity3pm",
+            "RainToday", "RainTomorrow")
+  
+  df_sel <- df %>%
+    select(all_of(cols)) %>%
+    drop_na() %>%
+    mutate(
+      RainToday = if_else(RainToday == "Yes", 1, 0),
+      RainTomorrow = if_else(RainTomorrow == "Yes", 1, 0)
+    )
+  
+  return(df_sel)
+}
+
+# Load data ke variabel global
+df_weather <- load_weather_data()
+
+
+```
+
+>Sumber Dataset: <a href="https://github.com/gchoi/Dataset/blob/master/weatherAUS.csv">Github</a>
+
+
+:::{.callout-tip title="Informasi Dataset"}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+cat("=== Dimensi Dataset ===\n")
+print(dim(df_weather))
+
+cat("\n=== Proporsi RainTomorrow ===\n")
+print(prop.table(table(df_weather$RainTomorrow)))
+
+```
+:::
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(df_weather, options = list(pageLength = 10, ordering = TRUE), rownames = FALSE)
+
+```
+
+
+Dataset Cuaca berisi informasi cuaca harian dari berbagai stasiun meteorologi di Australia. Dataset ini merupakan himpunan data cuaca harian yang merekam kondisi atmosfer seperti suhu, kelembaban, dan curah hujan untuk setiap tanggal pengamatan. Data ini relevan karena variabel‐variabel meteorologis tersebut memiliki keterkaitan langsung dengan probabilitas terjadinya hujan pada hari berikutnya.
+
+Variabel Target - `RainTomorrow (Y)`
+
+RainTomorrow adalah variabel biner yang menunjukkan apakah hujan terjadi pada hari berikutnya (1 = hujan, 0 = tidak hujan). Variabel ini digunakan sebagai label utama dalam pemodelan klasifikasi probabilistik.
+
+`Variabel Prediktor (X)`
+
+Variabel prediktor yang digunakan mencakup:
+
+- `MinTemp`: Suhu minimum harian, merepresentasikan kondisi udara dini hari.
+- `MaxTemp`: Suhu maksimum harian yang berkaitan dengan tingkat penguapan.
+- `Rainfall`: Curah hujan hari ini, indikator kondisi atmosfer yang masih lembap.
+- `Humidity9am`: Kelembapan udara pagi hari sebagai gambaran awal kondisi atmosfer.
+- `Humidity3pm`: Kelembaban sore hari, sering menjadi indikator penting cuaca esok.
+- `RainToday`: Apakah hari ini hujan `(1/0)`
+
+Variabel‐variabel ini dipilih karena memiliki dasar meteorologis yang kuat dan potensi kontribusi signifikan dalam memprediksi peluang hujan pada hari berikutnya.
+
+
+---
+
+
+# Identifikasi Masalah
+
+Permasalahan utama dalam penelitian ini adalah menentukan apakah hujan akan terjadi pada hari berikutnya berdasarkan kondisi cuaca hari ini. Dengan memanfaatkan variabel‐variabel meteorologis seperti suhu, kelembaban, dan curah hujan hari ini, diperlukan model yang mampu mengestimasi probabilitas terjadinya hujan secara akurat agar dapat mendukung analisis dan pengambilan keputusan terkait cuaca.
+
+---
+
+# EDA
+
+Exploratory Data Analysis atau Analisis Data Eksplorasi. Ini adalah proses awal dalam analisis data untuk memahami karakteristik, pola, dan hubungan dalam sekumpulan data menggunakan metode statistik dan visualisasi [@kurniawati2025eda].
+
+:::{.callout-note title="Exploratory Data Analysis"}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# 2. LOAD DATASET
+df <- read_csv("data/dataset-cuaca.csv", show_col_types = FALSE)
+
+# 3. TAMPILKAN HEAD (5 BARIS PERTAMA)
+cat("=== HEAD (5 Baris Pertama) ===\n")
+print(head(df, 5))
+cat("\n")
+
+# 4. INFORMASI STRUKTUR DATASET
+cat("=== INFO DATASET ===\n")
+print(str(df))
+cat("\n")
+
+# 5. STATISTIK DESKRIPTIF
+cat("=== DESCRIPTIVE STATISTICS ===\n")
+print(summary(df))
+cat("\n")
+
+# 6. CEK MISSING VALUES
+cat("=== MISSING VALUES ===\n")
+print(colSums(is.na(df)))
+```
+:::
+
+Hasilnya menunjukkan bahwa data sudah bersih, variabel prediktor memiliki variasi yang memadai, dan variabel target RainTomorrow cenderung tidak seimbang. Temuan ini menjadi dasar dalam menyiapkan data untuk proses pemodelan lebih lanjut.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,496 @@
+---
+title: "Naive Bayes"
+date: today
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# packages
+library(tidyverse)
+library(nnet)
+library(broom)
+library(pscl)  
+library(pROC)
+library(DT)
+library(caret)
+library(ggplot2)
+library(plotly)
+library(scatterplot3d)
+library(tidyr)
+library(dplyr)
+```
+
+# Dataset Cuaca
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data <- read.csv("data/dataset-cuaca.csv")
+dataset <- data
+
+DT::datatable(caption = "Tabel 1.1 Dataset Cuaca", dataset, options = list(pageLength = 10, ordering = TRUE), rownames = FALSE)
+
+```
+
+# Pengertian Naive
+
+**Naive Bayes** → algoritma klasifikasi probabilistik berbasis Teorema Bayes yang digunakan untuk memprediksi kelas target berdasarkan fitur-fitur input. Algoritma ini termasuk dalam kategori supervised learning, di mana model dilatih menggunakan data berlabel untuk mempelajari pola dan membuat prediksi pada data baru [@julianti2025nb].
+
+Dalam dataset cuaca kami (35.287 baris data), Naive Bayes dapat diterapkan untuk memprediksi `RainTomorrow` (apakah besok hujan = `1`, atau tidak = `0`) berdasarkan fitur seperti:
+
+- `MinTemp`: Suhu minimum hari ini (numerik/kontinu).
+- `MaxTemp`: Suhu maksimum hari ini (numerik).
+- `Rainfall`: Curah hujan hari ini (numerik).
+- `Humidity9am`: Kelembapan pukul 9 pagi (numerik).
+- `Humidity3pm`: Kelembapan pukul 3 sore (numerik).
+- `RainToday`: Apakah hari ini hujan (biner: 0 = Tidak, 1 = Ya).
+
+> Contoh Kasus :  
+> Berdasarkan data hari ini (misal: MinTemp=15°C, MaxTemp=25°C, Rainfall=0 mm, dll.), model memprediksi apakah besok hujan atau tidak. Ini berguna untuk aplikasi seperti ramalan cuaca atau perencanaan pertanian.
+
+Algoritma ini disebut "Naive" karena mengasumsikan **semua fitur saling independen** (tidak saling memengaruhi), meskipun di dunia nyata mungkin tidak demikian (misal: Kelembapan tinggi sering berkaitan dengan curah hujan). Asumsi ini menyederhanakan perhitungan dan membuat model cepat serta efisien.
+
+---
+
+# Rumus
+
+## Rumus Umum Naive Bayes
+
+$$
+{P(y | x_1, x_2, \dots, x_n) \propto P(y) \prod_{i=1}^{n} P(x_i | y)}
+$$
+
+- **$(P(y \mid x_1, ..., x_n))$** → Probabilitas prediksi yang kita cari.
+   Contoh: peluang besok hujan berdasarkan fitur cuaca.
+   
+-  **$(\propto)$** → “Sebanding”, tidak perlu hitung pembaginya. Fokus cuma bandingin skor kelas 1 vs 0.
+
+- **$(P(y))$** → Prior, yaitu seberapa sering kelas itu muncul di data.
+
+- **$(\prod P(x_i \mid y))$** → Perkalian semua probabilitas fitur.
+   Contoh: probabilitas MinTemp × probabilitas Humidity × seterusnya.
+   
+- **$(P(x_i \mid y))$** → Probabilitas satu fitur kalau kelasnya y.
+
+- **$(x_1, ..., x_n)$** → Fitur-fitur yang digunakan model.
+   Contoh: MinTemp, MaxTemp, Humidity, RainToday.
+   
+- **$(y)$** → Kelas/label yang ingin diprediksi.
+   Contoh: RainTomorrow (0 = tidak hujan, 1 = hujan) [@siregar2025nb].
+
+---
+
+## Kelas Yang Diprediksi
+
+$$
+{\hat{y} = \arg\max_y P(y) \prod_{i=1}^{n} P(x_i | y)}
+$$
+
+| **Komponen** | **Penjelasan** | **Contoh Dataset** |
+|--------------|----------------|----------------------------|
+| **$\hat{y}$** | Kelas prediksi (hasil akhir model). | $\hat{y} = 1$ (besok hujan) atau 0 (tidak hujan). |
+| **$\arg\max_y$** | Memilih kelas $y$ yang menghasilkan nilai perkalian tertinggi. | Jika skor untuk $y=1$ > skor untuk $y=0$, prediksi hujan besok. |
+| **$P(y) \prod P(x_i \| y)$** | Skor probabilitas untuk setiap kelas. | Skor(1) = $P(1) \times P(\text{Rainfall=0}\|1) \times \dots$; bandingkan dengan skor(0). |
+
+
+::: {.callout-note title="Karakteristik Naive Bayes"}
+
+- **Gaussian Naive Bayes** → Varian algoritma Naive Bayes yang menggunakan distribusi Gaussian (distribusi normal) dan variabel kontinu. Model ini digunakan untuk mencari rata-rata dan standar deviasi dari masing-masing kelas.
+
+- **Multinomial Niave Bayes** → Varian ini berguna saat menggunakan data diskrit, seperti jumlah frekuensi, dan biasanya diterapkan dalam kasus penggunaan pemrosesan bahasa alami (natural language processing/NLP), seperti klasifikasi spam pada e-mail.
+
+- **Bernouli Naive Bayes** → Varian ini menggunakan variabel Boolean, yaitu variabel dengan dua nilai, seperti Benar dan Salah atau 1 dan 0 [@itbox2024nb].
+
+::: 
+
+# Manfaat
+
+**1. Efisiensi Komputasi yang Tinggi**
+
+Proses pelatihan dan prediksi berjalan sangat cepat, bahkan pada dataset berukuran besar (puluhan hingga ratusan ribu observasi).
+
+**2. Tidak Perlu Data yang Banyak**
+
+Model mampu menghasilkan performa yang baik dengan jumlah data yang tidak terlalu banyak, menjadikan model ini pilihan efektif ketika data berlabel sulit atau untuk diperoleh.
+
+**3. Kemudahan Implementasi dan Interpretasi**
+
+Syntax tidak terlalu panjang, hasilnya cukup jelas, cocok jadi model pertama sebelum coba yang lebih kompleks [@probabilistik2024].
+
+
+---
+
+
+# Kapan Digunakan?
+
+- Mengidentifikasi wajah dan fitur-fitur wajah, seperti mata, hidung, mulut, dan alis.
+- Memprediksi cuaca.
+- Membantu dokter mendiagnosis risiko penyakit pasien, seperti kanker atau penyakit jantung.
+- Digunakan pada Google News untuk mengelompokkan suatu berita, misalnya berita tentang politik, hiburan, gaming, atau edukasi.
+- Pada e-mail, algoritma Naive Bayes digunakan untuk mengklasifikasikan apakah pesan yang masuk adalah spam atau tidak.
+- Menggunakan data fMRI, algoritma Naive Bayes dapat memprediksi berbagai kondisi kognitif manusia dan menemukan cedera otak [@itbox2024nb]. 
+
+---
+
+# Hasil Klasifikasi
+
+::: {.callout-tip title="Hasil Klasifikasi Naive Bayes"}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+features <- c("MinTemp", "MaxTemp", "Rainfall", "Humidity9am", "Humidity3pm", "RainToday")
+
+X <- data[, features]
+y <- as.factor(data$RainTomorrow)
+
+# Train-Test Split (80-20)
+set.seed(42)
+train_index <- caret::createDataPartition(y, p = 0.8, list = FALSE)
+
+X_train <- X[train_index, ]
+X_test  <- X[-train_index, ]
+y_train <- y[train_index]
+y_test  <- y[-train_index]
+
+# Normalisasi (opsional)
+scaler <- caret::preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(scaler, X_train)
+X_test_scaled  <- predict(scaler, X_test)
+
+# Train Gaussian Naive Bayes
+train_data <- data.frame(X_train_scaled, RainTomorrow = y_train)
+
+nb_model <- e1071::naiveBayes(RainTomorrow ~ ., data = train_data, laplace = 1)
+
+# Prediksi NB
+nb_pred <- predict(nb_model, X_test_scaled)
+
+pred_class <- factor(nb_pred, levels = levels(y_test))
+true_class <- y_test
+
+# Confusion Matrix Manual
+cm <- table(True = true_class, Pred = pred_class)
+
+# Fungsi Precision, Recall, F1 per kelas
+get_PRF <- function(cm, kelas) {
+  TP <- cm[kelas, kelas]
+  FP <- sum(cm[, kelas]) - TP
+  FN <- sum(cm[kelas, ]) - TP
+  
+  precision <- ifelse(TP + FP == 0, 0, TP / (TP + FP))
+  recall    <- ifelse(TP + FN == 0, 0, TP / (TP + FN))
+  f1        <- ifelse(precision + recall == 0, 0,
+                      2 * precision * recall / (precision + recall))
+  
+  support <- sum(cm[kelas, ])
+  
+  return(c(precision, recall, f1, support))
+}
+
+kelas <- rownames(cm)
+
+metric_res <- t(sapply(kelas, function(k) get_PRF(cm, k)))
+colnames(metric_res) <- c("precision", "recall", "f1_score", "support")
+rownames(metric_res) <- kelas
+
+# Macro & Weighted Average
+macro_avg <- colMeans(metric_res[, 1:3])
+
+weights <- metric_res[, 4] / sum(metric_res[, 4])
+weighted_avg <- colSums(metric_res[, 1:3] * weights)
+
+# Accuracy
+accuracy <- sum(diag(cm)) / sum(cm)
+
+# Output Akhir (format sama dengan LDA)
+cat("============================================================\n")
+cat("HASIL KLASIFIKASI NAIVE BAYES\n")
+cat("============================================================\n")
+cat(sprintf("Accuracy: %.4f\n\n", accuracy))
+
+print(round(metric_res, 3))
+
+cat("\nMacro Average\n")
+print(round(macro_avg, 3))
+
+cat("\nWeighted Average\n")
+print(round(weighted_avg, 3))
+
+cat("\nTotal Support:", sum(metric_res[, 4]), "\n")
+
+
+```
+:::
+
+## Interpretasi
+
+**Accuracy = 0.7934 (79.34%)**
+
+Model Naive Bayes mampu memprediksi dengan benar sekitar **79%** dari seluruh data uji.
+Ini menunjukkan performa yang **cukup baik**, terutama mengingat dataset cuaca biasanya memiliki distribusi kelas yang tidak seimbang.
+
+---
+
+**Evaluasi Per Kelas**
+
+Model memprediksi dua kelas:
+
+- **0 = Tidak Hujan Besok**
+- **1 = Hujan Besok**
+
+**Kelas 0 (Tidak Hujan Besok)**
+
+| Metric    | Nilai |
+| --------- | ----- |
+| Precision | 0.847 |
+| Recall    | 0.892 |
+| F1-score  | 0.869 |
+| Support   | 5417  |
+
+**Interpretasi:**
+
+- Precision `0.847` → Dari seluruh prediksi `Tidak Hujan`, `84.7%` benar.
+- Recall `0.892` → Dari seluruh kejadian `Tidak Hujan`, model menangkap `89.2%`.
+- F1-score `0.869` → Performa keseluruhan sangat baik.
+- Support `5417` → Data kelas `0` lebih banyak dibanding kelas `1`.
+
+**Model sangat bagus mendeteksi kondisi "Tidak Hujan"**
+Ini wajar karena jumlah datanya banyak (dominant class).
+
+---
+
+**Kelas 1 (Hujan Besok)**
+
+| Metric    | Nilai |
+| --------- | ----- |
+| Precision | 0.567 |
+| Recall    | 0.468 |
+| F1-score  | 0.513 |
+| Support   | 1640  |
+
+**Interpretasi:**
+
+- Precision `0.567` → Ketika model memprediksi “Hujan”, hanya `56.7%` yang benar.
+- Recall `0.468` → Dari semua kejadian hujan, model hanya mendeteksi `46.8%`.
+- F1-score `0.513` → Performa cukup rendah.
+
+**Model masih kesulitan mendeteksi hari yang benar-benar hujan.**
+Ini biasa terjadi karena:
+
+- Data hujan jauh lebih sedikit (class imbalance).
+- Naive Bayes sensitif terhadap distribusi fitur.
+
+---
+
+**Macro Average**
+
+| Precision | Recall | F1-score |
+| --------- | ------ | -------- |
+| 0.707     | 0.680  | 0.691    |
+
+**Interpretasi:**
+
+- Macro avg menghitung rata-rata tanpa melihat jumlah data masing-masing kelas.
+- Nilai sekitar **0.68–0.71**, menunjukkan performa keseluruhan model moderat.
+
+Ini juga menunjukkan bahwa kelas minoritas (hujan) menurunkan nilai rata-rata secara signifikan.
+
+---
+
+**Weighted Average**
+
+| Precision | Recall | F1-score |
+| --------- | ------ | -------- |
+| 0.782     | 0.793  | 0.786    |
+
+**Interpretasi:**
+
+- Weighted avg memberi bobot sesuai jumlah data tiap kelas.
+- Karena kelas 0 mendominasi, nilai rata-rata jadi tinggi (≈ 0.78).
+- Ini menggambarkan bahwa model lebih baik di kelas dominan.
+
+Weighted average yang lebih tinggi dari macro menegaskan bahwa:
+Model "terlalu nyaman" memprediksi kelas mayoritas.
+
+---
+
+**Support = 7057**
+
+Total data uji = 7057 sampel.
+Distribusi:
+
+* Tidak hujan: 5417 (76.7%)
+* Hujan: 1640 (23.2%)
+
+Output ini memperlihatkan imbalance yang kuat, dan ini menjelaskan kenapa model lebih bagus di kelas 0 daripada kelas 1.
+
+---
+
+**Kesimpulan Utama**
+
+1. Naive Bayes cukup akurat **(79%)**.
+2. Model cukup baik memprediksi hari yang tidak hujan.
+3. Model kurang baik memprediksi hari yang akan hujan: recall hanya **46%**.
+4. Distribusi data yang tidak seimbang menyebabkan model condong ke kelas mayoritas.
+5. Secara keseluruhan, performa moderat → baik untuk baseline, tapi masih bisa ditingkatkan.
+
+---
+
+# Visualisasi
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Scaling data
+X_scaled <- predict(scaler, X)
+
+# Grid
+xx <- seq(min(X_scaled$MinTemp) - 1, max(X_scaled$MinTemp) + 1, by = 0.05)
+yy <- seq(min(X_scaled$MaxTemp) - 1, max(X_scaled$MaxTemp) + 1, by = 0.05)
+grid <- expand.grid(MinTemp = xx, MaxTemp = yy)
+
+# Rata-rata fitur lain
+mean_vals <- colMeans(X_train_scaled[, c("Rainfall", "Humidity9am", "Humidity3pm", "RainToday")])
+
+X_grid <- data.frame(
+  MinTemp = grid$MinTemp,
+  MaxTemp = grid$MaxTemp,
+  Rainfall = mean_vals["Rainfall"],
+  Humidity9am = mean_vals["Humidity9am"],
+  Humidity3pm = mean_vals["Humidity3pm"],
+  RainToday = mean_vals["RainToday"]
+)
+
+# Prediksi grid
+grid_pred <- predict(nb_model, X_grid)
+Z <- ifelse(grid_pred == "1", 1, 0)
+Z_matrix <- matrix(Z, nrow = length(xx), ncol = length(yy), byrow = FALSE)
+
+
+# ========= PLOT =========
+fig <- plot_ly()
+
+# Decision Boundary
+fig <- fig %>% add_contour(
+  z = Z_matrix, x = xx, y = yy,
+  colorscale = list(c(0, "#e6f2ff"), c(1, "#f5e6a6")),
+  showscale = FALSE, opacity = 0.55,
+  line = list(width = 0),
+  contours = list(coloring = "fill")
+)
+
+# Pisahkan data menjadi 2 kelas
+data_no_rain <- X_scaled[y == 0, ]
+data_rain    <- X_scaled[y == 1, ]
+
+# Scatter: Tidak Hujan (0)
+fig <- fig %>% add_trace(
+  data = data_no_rain,
+  x = ~MinTemp, y = ~MaxTemp,
+  type = "scatter", mode = "markers",
+  marker = list(
+    size = 9,
+    color = "#435663",
+    line = list(color = "white", width = 1)
+  ),
+  name = "Tidak Hujan",
+  hoverinfo = "x+y+name"
+)
+
+# Scatter: Hujan (1)
+fig <- fig %>% add_trace(
+  data = data_rain,
+  x = ~MinTemp, y = ~MaxTemp,
+  type = "scatter", mode = "markers",
+  marker = list(
+    size = 9,
+    color = "#A3B087",
+    line = list(color = "white", width = 1)
+  ),
+  name = "Hujan",
+  hoverinfo = "x+y+name"
+)
+
+# Layout
+fig <- fig %>% layout(
+  title = list(
+    text = "<b>Decision Boundary Gaussian Naïve Bayes</b><br>MinTemp vs MaxTemp",
+    font = list(size = 16)
+  ),
+  xaxis = list(title = "MinTemp (Scaled)", zeroline = FALSE, gridcolor = "#f0f0f0"),
+  yaxis = list(title = "MaxTemp (Scaled)", zeroline = FALSE, gridcolor = "#f0f0f0"),
+  plot_bgcolor = "white",
+  paper_bgcolor = "white",
+  legend = list(title = list(text = "Keterangan"))
+)
+
+fig
+
+```
+
+---
+
+<!-- ## Interpretasi -->
+
+(MinTemp vs MaxTemp – Scaled)
+
+**1. Makna Warna**
+
+   - **Abu-Abu** → Prediksi Tidak Hujan Besok
+   - **Hijau** → Prediksi Hujan Besok
+   
+**2. Pola yang Terlihat**
+
+- Ketika MinTemp rendah dan MaxTemp rendah (kiri bawah) → mayoritas biru → model memprediksi Tidak Hujan.
+
+> Hari dingin cenderung cerah di dataset ini.
+
+- Ketika MinTemp tinggi dan MaxTemp tinggi (kanan atas) → campuran, tapi semakin ke kanan atas semakin banyak orange → model memprediksi Hujan.
+
+> Suhu tinggi sering dikaitkan dengan ketidakstabilan atmosfer → hujan.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

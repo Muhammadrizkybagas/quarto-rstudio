@@ -1,0 +1,63 @@
+project:
+  type: website
+
+# TITLE TOC
+website:
+  title: "Model Prediksi"
+  repo-url: https://github.com/Muhammadrizkybagas
+  repo-actions: [source, edit]
+  navbar: false
+  
+# SIDEBAR
+  sidebar:
+    logo: img/itsb.jpg
+    title: "Comparison of Probabilistic Model"
+    pinned: true
+    style: "docked"
+    search: true
+    
+    tools:
+      - icon: github
+        href: "https://github.com/Muhammadrizkybagas"
+      - icon: instagram
+        href: "https://instagram.com/mhmmd.rizky_bagas"
+      - icon: globe
+        href: "https://muhammadrizkybagas.github.io/portofolio1/"
+       
+    contents:
+      - text: "**INTRODUCTION**"
+        href: intro.qmd
+      - section: "**MATERI**"
+        contents:
+          - text: "1. Naive Bayes"
+            href: chapter1.qmd
+            
+          - text: "2. Linear Discriminant Analyis"
+            href: chapter2.qmd
+            
+          - text: "3. Quadratic Discriminant Analyis"
+            href: chapter3.qmd
+            
+          - text: "4. Logistic Regression"
+            href: chapter4.qmd
+            
+          - text: "5. Perbandingan"
+            href: chapter5.qmd
+# END SIDEBAR
+    
+  page-footer:
+    left: "© 2025 Muhammad Rizky Bagas"
+    right: "Powered by Quarto"
+
+# THEME
+format:
+  html:
+    theme: cosmo
+    link-citations: true
+    css: css/styles.css
+    toc: true
+    number-sections: true
+
+# REFERENCES
+bibliography: referensi/referensi.bib
+csl: referensi/ieee.csl

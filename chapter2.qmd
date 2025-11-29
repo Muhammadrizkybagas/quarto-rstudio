@@ -1,0 +1,408 @@
+---
+title: "Linear Discriminant Analysis (LDA)"
+date: today
+---
+ 
+ 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(plotly)
+library(MASS)
+library(readr)
+library(caret)
+library(nnet)
+library(broom)
+library(pscl)  
+library(pROC)
+library(DT)
+library(ggplot2)
+library(plotly)
+library(scatterplot3d)
+library(tidyr)
+library(dplyr)
+library(MASS)
+
+```
+
+# Dataset
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+data <- read.csv("data/dataset-cuaca.csv")
+dataset <- data
+
+DT::datatable(caption = "Tabel 1.1 Dataset Cuaca", dataset, options = list(pageLength = 10, ordering = TRUE), rownames = FALSE)
+
+```
+
+# Pengertian
+
+**Linear Discriminant Analysis (LDA)** → teknik statistik untuk mencari kombinasi linear dari fitur yang paling optimal dalam memisahkan dua atau lebih kelas.  
+Tujuannya:
+
+- Memaksimalkan variansi antar kelas (between-class variance)
+- Meminimalkan variansi dalam kelas (within-class variance)
+- Menghasilkan proyeksi data berdimensi lebih rendah yang tetap mempertahankan informasi diskriminatif [@ibm2025lda].
+
+---
+
+# Rumus LDA
+
+Rumus fungsi diskriminan untuk kelas $k$:
+
+$$
+\delta_k(x) = x^T \Sigma^{-1} \mu_k - \frac{1}{2} \mu_k^T \Sigma^{-1} \mu_k + \log(\pi_k)
+$$
+
+Interpretasi:
+
+Secara sederhana, rumus ini menentukan *seberapa besar kemungkinan* suatu data baru (x) termasuk ke dalam kelas (k). LDA akan memilih kelas dengan nilai skor terbesar.
+
+1. $(x^T \Sigma^{-1} \mu_k)$
+   Mengukur tingkat “kemiripan” antara data baru dan rata-rata kelas (k). Semakin besar hasilnya, semakin mirip data tersebut dengan kelas tersebut.
+
+2. $(-\frac{1}{2} \mu_k^T \Sigma^{-1} \mu_k)$
+   Merupakan nilai penyeimbang. Bagian ini hanya bergantung pada karakteristik kelas (k) dan mencegah skor menjadi bias pada kelas tertentu.
+
+3. $(\log(\pi_k))$
+   Menambahkan pengaruh dari prior probability kelas. Jika suatu kelas lebih sering muncul, nilai ini memberikan tambahan skor untuk kelas tersebut [@siregar2025lda].
+
+---
+
+# Manfaat
+
+- Membantu memisahkan kelompok data secara jelas berdasarkan pola yang ada.
+- Efektif ketika data rapi dan mengikuti pola distribusi yang mirip antar kelas.
+- Hasil model lebih stabil pada dataset berukuran kecil.
+- Dapat meningkatkan akurasi jika data memenuhi asumsi yang dibutuhkan LDA.
+- Kapan LDA Sebaiknya Digunakan:
+- Ketika data antar kelas punya pola persebaran yang hampir sama.
+- Saat data mendekati distribusi normal (Gaussian).
+- Jika dataset tidak terlalu besar namun tetap ingin model yang presisi dan stabil.
+- Ketika hubungan antar variabel cenderung linear.
+
+---
+
+
+# Kapan Digunakan?
+
+- Ketika data memiliki label (supervised learning) LDA butuh informasi kelas, jadi dipake kalau datanya sudah berlabel.
+
+- Ketika kita ingin klasifikasi tapi data terlalu banyak fiturnya misalnya data 100 fitur → LDA bisa turunin jadi 1 atau 2 dimensi yang paling penting untuk pisahkan kelasnya.
+
+- Saat dataset punya kelas yang relatif seimbang dan terdistribusi normal, LDA bekerja sangat baik kalau data antar kelas punya struktur yang rapi.
+
+<!-- - Ketika kamu butuh model yang cepat dan sederhana LDA itu cepat banget, ringan, dan mudah dijelaskan. -->
+
+- Saat kamu ingin memahami fitur mana yang benar-benar memisahkan kelas LDA menunjukkan “arah pemisah terbaik”, jadi kamu tahu fitur mana yang berpengaruh.
+
+- Untuk pre-processing sebelum model lain Banyak dipakai sebelum KNN, Logistic Regression, SVM supaya hasilnya lebih bagus.
+
+- Untuk tugas klasifikasi multi-class LDA bagus untuk dataset dengan lebih dari dua kelas.
+
+
+# Hasil Klasifikasi
+
+::: {.callout-tip title="Hasil Klasifikasi Linear Discriminant Analyis"}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# ============================================================
+# Load Data
+# ============================================================
+data <- read_csv("data/dataset-cuaca.csv")
+
+# Target sebagai faktor
+data$RainTomorrow <- as.factor(data$RainTomorrow)
+
+# Ambil fitur numerik + target
+num_features <- data %>% 
+  dplyr::select_if(is.numeric)
+
+df <- cbind(num_features, RainTomorrow = data$RainTomorrow)
+
+# Train-Test Split
+set.seed(123)
+train_index <- createDataPartition(df$RainTomorrow, p = 0.8, list = FALSE)
+
+train_df <- df[train_index, ]
+test_df  <- df[-train_index, ]
+
+# Train LDA Model
+lda_model <- lda(RainTomorrow ~ ., data = train_df)
+
+# Prediksi LDA
+lda_pred_train <- predict(lda_model, train_df)
+lda_pred_test  <- predict(lda_model, test_df)
+
+pred_class <- factor(lda_pred_test$class, 
+                     levels = levels(test_df$RainTomorrow))
+true_class <- test_df$RainTomorrow
+
+# Confusion Matrix
+cm <- table(True = true_class, Pred = pred_class)
+
+# Fungsi Precision - Recall - F1 per kelas
+get_PRF <- function(cm, kelas) {
+  TP <- cm[kelas, kelas]
+  FP <- sum(cm[, kelas]) - TP
+  FN <- sum(cm[kelas, ]) - TP
+  
+  precision <- ifelse(TP + FP == 0, 0, TP / (TP + FP))
+  recall    <- ifelse(TP + FN == 0, 0, TP / (TP + FN))
+  f1        <- ifelse(precision + recall == 0, 0,
+                      2 * precision * recall / (precision + recall))
+  
+  support <- sum(cm[kelas, ])
+  
+  return(c(precision, recall, f1, support))
+}
+
+kelas <- rownames(cm)
+
+metric_res <- t(sapply(kelas, function(k) get_PRF(cm, k)))
+colnames(metric_res) <- c("precision", "recall", "f1_score", "support")
+rownames(metric_res) <- kelas
+
+# Macro & Weighted Average
+macro_avg <- colMeans(metric_res[, 1:3])
+macro_avg_support <- sum(metric_res[, 4])
+
+weights <- metric_res[, 4] / sum(metric_res[, 4])
+weighted_avg <- colSums(metric_res[, 1:3] * weights)
+weighted_avg_support <- sum(metric_res[, 4])
+
+# Accuracy
+accuracy <- sum(diag(cm)) / sum(cm)
+
+# Output
+cat("============================================================\n")
+cat("HASIL KLASIFIKASI LDA\n")
+cat("============================================================\n")
+cat(sprintf("Accuracy: %.4f\n\n", accuracy))
+
+print(round(metric_res, 3))
+
+cat("\nAccuracy\n")
+print(round(accuracy, 2))
+
+cat("\nMacro Average\n")
+print(round(c(macro_avg, macro_avg_support), 2))
+
+cat("\nWeighted Average\n")
+print(round(c(weighted_avg, weighted_avg_support), 2))
+
+
+```
+:::
+
+## Interpretasi
+
+`Accuracy : 0.8290 / 0.830`
+
+Artinya:
+
+Dari seluruh data uji, `82.9%` prediksi model benar.
+
+Akurasi ini cukup baik, terutama untuk dataset dengan ketidakseimbangan kelas (kelas 0 jauh lebih banyak dibanding kelas 1).
+
+---
+
+`kelas 0 = tidak hujan besok`
+
+Precision `0.849` → dari seluruh prediksi `Tidak Hujan`, `84.9%` benar.
+
+Recall `0.946` → dari seluruh data yang sebenarnya `Tidak Hujan`, `94.6%` berhasil terdeteksi.
+
+F1-Score tinggi `(0.895)` → model sangat baik pada kelas mayoritas ini.
+Model sangat baik mendeteksi hari tanpa hujan.
+
+---
+
+`Kelas 1 = Hujan Besok`
+
+Precision `0.712` → dari seluruh prediksi `Hujan`, `71.2%` benar. (cukup bagus)
+
+Recall `0.444` → dari seluruh hari yang sebenarnya hujan, model hanya mendeteksi `44.4%` (rendah)
+
+F1-Score `0.547` → kinerja sedang, karena recall rendah.
+
+Model masih kesulitan mendeteksi hari hujan, karena kelas ini jumlahnya lebih sedikit (kelas minoritas).
+
+---
+
+**Macro Average:**
+
+Menghitung rata-rata tanpa mempertimbangkan jumlah data tiap kelas.
+
+Recall rendah `(0.69)` menunjukkan ketidakseimbangan kelas mempengaruhi deteksi hujan.
+
+Macro F1 = `0.72` → performa rata-rata model moderat.
+
+---
+
+**weighted average:**
+
+- Menghitung rata-rata dengan bobot sesuai jumlah data tiap kelas.
+- Dominasi kelas `0` (Tidak Hujan) membuat nilai weighted lebih tinggi.
+- Weighted `F1 = 0.81` → performa keseluruhan sangat baik.
+
+---
+
+# Visualisasi 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(plotly)
+library(MASS)
+library(dplyr)
+
+# Ambil hanya 2 fitur untuk visualisasi 2D
+df_2d <- data %>%
+  mutate(RainTomorrow = factor(RainTomorrow, labels = c("Tidak Hujan", "Hujan")))
+
+# Standarisasi (sama seperti saat training)
+df_2d_scaled <- df_2d
+df_2d_scaled$MinTemp <- scale(df_2d$MinTemp)[,1]
+df_2d_scaled$MaxTemp <- scale(df_2d$MaxTemp)[,1]
+
+# Train ulang LDA hanya dengan 2 fitur
+lda_2d <- lda(RainTomorrow ~ MinTemp + MaxTemp, data = df_2d_scaled)
+
+# Prediksi untuk seluruh grid (buat decision boundary)
+grid_range <- 3.5  # karena sudah discaled
+grid <- expand.grid(
+  MinTemp = seq(-grid_range, grid_range, length.out = 200),
+  MaxTemp = seq(-grid_range, grid_range, length.out = 200)
+)
+grid_pred <- predict(lda_2d, newdata = grid)$class
+
+# Buat matrix untuk contour
+z_matrix <- matrix(as.numeric(grid_pred), nrow = 200, byrow = TRUE)
+
+# Plot interaktif dengan plotly
+plot_ly() %>%
+  
+  # Decision boundary (area berwarna)
+  add_contour(
+    x = seq(-grid_range, grid_range, length.out = 200),
+    y = seq(-grid_range, grid_range, length.out = 200),
+    z = z_matrix,
+    colorscale = list(c(0, 1), c("#E3F2FD", "#FFF3E0")),
+    showscale = FALSE,
+    opacity = 0.4,
+    contours = list(showlines = FALSE),
+    name = "Decision Region"
+  ) %>%
+  
+  # Titik data aktual
+  add_trace(
+    data = df_2d_scaled,
+    x = ~MinTemp,
+    y = ~MaxTemp,
+    type = "scatter",
+    mode = "markers",
+    color = ~RainTomorrow,
+    colors = c("#1E88E5", "#FF6F00"),
+    marker = list(
+      size = 8,
+      line = list(color = "white", width = 1.2)
+    ),
+    text = ~paste("MinTemp:", round(MinTemp, 2), "<br>MaxTemp:", round(MaxTemp, 2)),
+    hoverinfo = "text"
+  ) %>%
+  
+  # Layout
+  layout(
+    title = list(
+      text = "<b>Visualisasi LDA: MinTemp vs MaxTemp</b><br><sub>Decision Boundary & Proyeksi Data (2 Fitur)</sub>",
+      font = list(size = 18)
+    ),
+    xaxis = list(title = "MinTemp (scaled)", gridcolor = "lightgray"),
+    yaxis = list(title = "MaxTemp (scaled)", gridcolor = "lightgray"),
+    legend = list(title = list(text = "<b>Kelas</b>")),
+    plot_bgcolor = "white",
+    paper_bgcolor = "white",
+    hovermode = "closest"
+  )
+
+```
+
+## Interpretasi
+
+
+**Makna Warna**
+
+- Hijau = Tidak Hujan
+- Biru = Hujan
+
+**Pola**
+
+- Titik biru (hujan) cenderung berada di sisi kiri bawah = suhu minimum rendah + suhu maksimum tidak terlalu tinggi.
+- Sebagian titik berada di sisi atas = Prediksi Tidak Hujan Tinggi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

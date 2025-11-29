@@ -1,0 +1,387 @@
+---
+title: "Logistic Regression"
+date: today
+---
+
+# Pengertian
+
+Logistic Regression adalah model linear probabilistik yang digunakan untuk menyelesaikan permasalahan klasifikasi biner. Model ini tidak hanya memprediksi kelas `(hujan/tidak hujan)`, tetapi juga memberikan peluang terjadinya hujan esok hari berdasarkan kondisi cuaca hari ini. Logistic Regression menggunakan fungsi aktivasi logistic (sigmoid) untuk mengubah kombinasi linear fitur menjadi nilai probabilitas `0` dan `1` [@ruangjurnal2025log].
+
+Dalam konteks prediksi cuaca, **Logistic Regression** digunakan untuk memperkirakan kemungkinan terjadinya hujan pada hari berikutnya berdasarkan berbagai variabel cuaca hari ini, seperti suhu, curah hujan, dan kelembapan. Model ini cocok digunakan ketika tujuan analisis tidak hanya mengklasifikasikan, tetapi juga membaca seberapa besar peluang hujan terjadi [@ruangjurnal2025log].
+
+# Rumus Logistik Regresi
+
+Misalkan:
+
+- ($x$) = vektor fitur prediktor
+  (MinTemp, MaxTemp, Rainfall, Humidity9am, Humidity3pm, RainToday)
+- ($\beta$) = vektor parameter (koefisien model) [@siregar2025log].
+
+Maka probabilitas terjadinya hujan besok dituliskan sebagai:
+
+$$
+P(Y = 1 \mid x) = \frac{1}{1 + e^{-(\beta_0 + \beta^T x)}}
+$$
+
+Di mana:
+
+- ( $Y = 1$ ) artinya besok `hujan`
+- ( $Y = 0$ ) artinya besok `tidak hujan`
+
+---
+
+## Aturan Keputusan
+
+Model menetapkan prediksi kelas sebagai berikut:
+
+$$
+[
+\hat{y} =
+\begin{cases}
+1, & \text{jika } P(Y = 1 \mid x) \ge 0.5 \
+0, & \text{jika } P(Y = 1 \mid x) < 0.5
+\end{cases}
+]
+$$
+
+
+> Jika peluang hujan ≥ 50%, model memprediksi “hujan”. Jika kurang dari itu, “tidak hujan”.
+
+---
+
+## Proses Pelatihan Model
+
+Parameter ( $\beta$ ) dipelajari dengan cara memaksimalkan likelihood (probabilitas model sesuai dengan data). Umumnya hal ini dilakukan dengan meminimalkan negative log-likelihood berikut:
+
+$$
+L(\beta) = - \sum_{i=1}^{n} \left[ y_i \log P(y_i \mid x_i) + (1 - y_i) \log (1 - P(y_i \mid x_i)) \right]
+$$
+
+Tujuan model adalah mencari nilai koefisien ( $\beta$ ) yang membuat prediksi probabilitas paling sesuai dengan pola data cuaca yang sebenarnya.
+
+
+::: {.callout-note title="Karakteristik Logistik Regresi"}
+
+- **Menghasilkan batasan keputusan linier** → decision boundary berupa garis lurus (atau hyperplane) di ruang fitur.
+- **Koefisien model yang dapat diinterpretasikan** → setiap koefisien (β) bisa diubah jadi odds ratio (exp(β)) sehingga mudah dipahami dampaknya.
+- **Dapat diperluas ke klasifikasi multikelas** → menggunakan Regresi Softmax (Multinomial Logistic Regression) untuk lebih dari 2 kelas.
+
+:::
+
+---
+
+# Manfaat
+
+Logistic Regression memiliki sejumlah manfaat penting ketika digunakan untuk analisis prediktif dengan variabel target bersifat kategori, seperti kondisi `hujan` atau `tidak hujan`.
+
+Keunggulan utamanya adalah kemampuan memberikan estimasi probabilitas terjadinya suatu peristiwa, bukan hanya menentukan hasil klasifikasi semata. Dalam konteks cuaca, hal ini sangat berguna karena peneliti dapat mengetahui seberapa besar kemungkinan hujan terjadi, bukan hanya hasil biner.
+
+Selain itu, model ini juga mampu menunjukkan pengaruh masing-masing variabel cuaca seperti suhu, kelembapan, maupun curah hujan terhadap peluang hujan. Kemampuan interpretasi yang jelas, struktur model yang sederhana, serta efisiensinya pada dataset berukuran besar menjadikan Logistic Regression sebagai metode yang sangat praktis dan mudah diterapkan dalam analisis meteorologi [@kantinit2023log].
+
+# Kapan Digunakan?
+
+Logistic Regression sering digunakan pada berbagai permasalahan yang melibatkan prediksi dua kondisi, termasuk dalam studi cuaca. Dalam penelitian meteorologi, model ini digunakan untuk memprediksi apakah hujan akan terjadi atau tidak berdasarkan faktor-faktor cuaca seperti kelembapan, suhu udara, tekanan atmosfer, dan curah hujan sebelumnya.
+
+Melalui pendekatan ini, peneliti dapat mengestimasi pola cuaca dan memberikan informasi yang lebih akurat terkait peluang hujan. Selain meteorologi, Logistic Regression juga banyak dipakai di bidang lain seperti kesehatan, keuangan, dan pemasaran. Namun dalam penelitian ini, fokus utamanya adalah pada kemampuan model dalam membantu memahami hubungan antar variabel cuaca dan memprediksi kondisi hujan secara lebih terukur [@kantinit2023log].
+
+# Hasil Klasifikasi
+
+::: {.callout-note title="Hasil Klasifikasi Logistik Regresi"}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# =====================================================
+# LOGISTIC REGRESSION – R VERSION
+# Dataset: weatherAUS_preprocessed.csv
+# Output: Sama persis seperti Python
+# =====================================================
+
+# 1. Baca dataset
+data <- read.csv("data/dataset-cuaca.csv")
+
+# 2. Pilih fitur dan target
+features <- c("MinTemp", "MaxTemp", "Rainfall", "Humidity9am", "Humidity3pm", "RainToday")
+X <- data[, features]
+y <- factor(data$RainTomorrow, levels = c(0, 1), labels = c("Tidak Hujan", "Hujan"))
+
+# 3. Train-test split (80:20, stratified)
+set.seed(42)
+train_idx <- caret::createDataPartition(y, p = 0.8, list = FALSE)
+X_train <- X[train_idx, ]
+X_test  <- X[-train_idx, ]
+y_train <- y[train_idx]
+y_test  <- y[-train_idx]
+
+# 4. Standarisasi (StandardScaler)
+scaler <- caret::preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(scaler, X_train)
+X_test_scaled  <- predict(scaler, X_test)
+
+# 5. Train Logistic Regression
+log_model <- glm(y_train ~ ., data = X_train_scaled, family = binomial(link = "logit"))
+# Alternatif: nnet::multinom() jika ingin max_iter lebih eksplisit
+
+# 6. Prediksi
+log_pred_prob <- predict(log_model, X_test_scaled, type = "response")
+log_pred <- factor(ifelse(log_pred_prob > 0.5, "Hujan", "Tidak Hujan"), 
+                   levels = levels(y_test))
+
+# 7. Confusion Matrix
+cm <- table(Actual = y_test, Predicted = log_pred)
+print(cm)
+
+# 8. Fungsi hitung Precision, Recall, F1 per kelas
+get_PRF <- function(cm, class_name) {
+  idx <- which(rownames(cm) == class_name)
+  TP <- cm[idx, idx]
+  FP <- sum(cm[, idx]) - TP
+  FN <- sum(cm[idx, ]) - TP
+  TN <- sum(cm) - TP - FP - FN
+  
+  precision <- ifelse(TP + FP == 0, 0, TP / (TP + FP))
+  recall    <- ifelse(TP + FN == 0, 0, TP / (TP + FN))
+  f1        <- ifelse(precision + recall == 0, 0, 2 * precision * recall / (precision + recall))
+  support   <- sum(cm[idx, ])
+  
+  return(c(precision = precision, recall = recall, f1_score = f1, support = support))
+}
+
+# 9. Hitung metrik untuk setiap kelas
+kelas <- levels(y)
+metrics <- t(sapply(kelas, function(k) get_PRF(cm, k)))
+metric_df <- as.data.frame(metrics)
+metric_df <- round(metric_df, 3)
+
+# 10. Macro & Weighted Average
+macro_avg <- colMeans(metric_df[, 1:3])
+
+support_total <- sum(metric_df$support)
+weights <- metric_df$support / support_total
+weighted_avg <- colSums(metric_df[, 1:3] * weights)
+
+# 11. Accuracy
+accuracy <- sum(diag(cm)) / sum(cm)
+
+# 12. OUTPUT – FORMAT SAMA PERSIS DENGAN PYTHON & LDA
+cat("============================================================\n")
+cat("HASIL KLASIFIKASI LOGISTIC REGRESSION\n")
+cat("============================================================\n")
+cat("Accuracy:", round(accuracy, 4), "\n\n")
+
+print(metric_df)
+
+cat("\nMacro Average\n")
+print(round(macro_avg, 3))
+
+cat("\nWeighted Average\n")
+print(round(weighted_avg, 3))
+
+cat("\nTotal Support:", support_total, "\n")
+
+```
+:::
+
+
+## Interpretasi
+
+Berikut interpretasi singkat dan jelas dari hasil Logistic Regression pada gambar tersebut:
+
+1. **Accuracy keseluruhan:** `82.84%`
+
+   Model benar menebak apakah hujan atau tidak hujan di 82.84% kasus (cukup baik untuk data cuaca).
+
+2. **Confusion Matrix** (dalam bentuk tabel):
+
+   - True Negative (TN): `5116` → benar prediksi "Tidak Hujan"
+   - False Positive (FP): `301` → salah prediksi "Hujan" padahal "Tidak Hujan"
+   - False Negative (FN): `910` → salah prediksi "Tidak Hujan" padahal "Hujan"
+   - True Positive (TP): `730` → benar prediksi "Hujan"
+
+3. **Performa per kelas**:
+
+   - **Kelas "Tidak Hujan"** → Precision tinggi `(0.849)` → kalau model bilang "Tidak Hujan", kemungkinan besar benar. Tapi recall rendah (0.695) → banyak kasus "Tidak Hujan" yang tidak terdeteksi (salah diprediksi hujan).
+   - **Kelas "Hujan"** → Recall tinggi `(0.889)` → model jarang melewatkan hari hujan (bagus kalau tujuannya tidak ketinggalan prediksi hujan). Tapi precision lebih rendah `(0.708)` → cukup banyak false alarm (prediksi hujan tapi sebenarnya tidak).
+
+4. **Macro Average F1-score = 0.721**  
+
+Rata-rata performa kedua kelas tanpa mempedulikan jumlah data → model lumayan, tapi tidak terlalu seimbang.
+
+5. **Weighted Average F1-score = 0.813**
+
+Karena data sedikit imbalance (lebih banyak hari `Hujan = 1640` vs `Tidak Hujan = 817)`, weighted average lebih tinggi dan mendekati accuracy.
+
+
+
+# Visualisasi
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# =============================================
+# VISUALISASI SCATTER PLOT: MinTemp vs MaxTemp
+# Dataset: weatherAUS_preprocessed.csv
+# Menggunakan plotly (interaktif)
+# =============================================
+
+# 1. Baca dataset (pastikan file ada di working directory)
+df <- read.csv("data/dataset-cuaca.csv")
+
+# 2. Ambil hanya dua fitur + target
+X2 <- df[, c("MinTemp", "MaxTemp")]
+y2 <- df$RainTomorrow
+
+# 3. Standarisasi (scaling) seperti StandardScaler di Python
+X2_scaled <- as.data.frame(scale(X2))
+
+# Tambahkan kolom target kembali untuk memudahkan filtering
+data_plot <- cbind(X2_scaled, RainTomorrow = factor(y2, labels = c("Tidak Hujan", "Hujan")))
+
+# 4. Buat scatter plot interaktif dengan plotly
+library(plotly)
+
+p <- plot_ly() %>%
+  
+  # Titik: Tidak Hujan (0)
+  add_trace(
+    data = subset(data_plot, RainTomorrow == "Tidak Hujan"),
+    x = ~MinTemp,
+    y = ~MaxTemp,
+    type = "scatter",
+    mode = "markers",
+    name = "Tidak Hujan",
+    marker = list(
+      size = 9,
+      color = "#73AF6F",      # Biru tua
+      line = list(color = "white", width = 1)
+    )
+  ) %>%
+  
+  # Titik: Hujan (1)
+  add_trace(
+    data = subset(data_plot, RainTomorrow == "Hujan"),
+    x = ~MinTemp,
+    y = ~MaxTemp,
+    type = "scatter",
+    mode = "markers",
+    name = "Hujan",
+    marker = list(
+      size = 9,
+      color = "#007E6E",      # Orange
+      line = list(color = "white", width = 1)
+    )
+  ) %>%
+  
+  # Layout cantik
+  layout(
+    title = list(
+      text = "<b>Scatter Plot: MinTemp vs MaxTemp</b><br><sub>(Data telah distandarisasi)</sub>",
+      font = list(size = 18)
+    ),
+    xaxis = list(
+      title = "MinTemp (scaled)",
+      zeroline = FALSE,
+      gridcolor = "#f0f0f0"
+    ),
+    yaxis = list(
+      title = "MaxTemp (scaled)",
+      zeroline = FALSE,
+      gridcolor = "#f0f0f0"
+    ),
+    plot_bgcolor  = "white",
+    paper_bgcolor = "white",
+    legend = list(
+      title = list(text = "<b>Keterangan</b>"),
+      bgcolor = "rgba(255,255,255,0.9)"
+    ),
+    hovermode = "closest"
+  )
+
+# Tampilkan plot
+p
+
+```
+
+## Interpretasi
+
+Interpretasi dari scatter plot MinTemp vs MaxTemp (setelah distandarisasi) ini:
+
+1. **Ada korelasi positif yang sangat kuat** antara MinTemp dan MaxTemp  
+   Semakin tinggi suhu minimum, semakin tinggi pula suhu maksimum hari itu (bentuk cloud memanjang dari kiri bawah ke kanan atas).
+
+2. **Decision boundary Logistic Regression pasti berupa garis lurus** 
+
+   Karena Logistic Regression adalah model linier di ruang fitur, batas keputusannya adalah satu garis lurus (atau miring) yang memisahkan biru dan orange.
+
+3. **Pemisahan kedua kelas cukup baik tapi tidak sempurna** 
+
+   - Hijau ("Tidak Hujan") lebih banyak di kiri bawah (suhu rendah).  
+   - Toska ("Hujan") lebih banyak di kanan atas (suhu tinggi).  
+   Artinya: hari yang lebih panas (baik min maupun max) cenderung lebih sering hujan.
+
+4. **Ada overlap yang cukup besar di tengah-tengah** 
+
+   Banyak titik biru dan orange bercampur di area tengah (MinTemp scaled -1 sampai 1). Inilah penyebab accuracy "hanya" ~83% (lihat hasil sebelumnya). Model tidak bisa memisahkan 100% karena memang ada overlap alami.
+
+5. **Model sudah menangkap pola utama** 
+
+   Garis lurus yang optimal kemungkinan besar miring ke atas (slope positif), sesuai dengan tren data. Jadi walaupun sederhana, Logistic Regression sudah cukup efektif di sini karena pola utamanya memang mendekati linier.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,199 @@
+[
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "Comparison of Probabilistic Model",
+    "section": "",
+    "text": "1 Pengertian\nModel probabilistik → model yang membantu kita memahami hal-hal yang masih penuh ketidakpastian dengan melihat peluang terjadinya suatu peristiwa. Dalam machine learning, model ini digunakan dalam klasifikasi probabilistik, yaitu cara memprediksi suatu kategori sekaligus menunjukkan seberapa besar kemungkinan prediksi itu benar. Pendekatan ini sangat berguna ketika kita perlu mempertimbangkan risiko, misalnya saat memprediksi cuaca atau mendeteksi penipuan [1]-[2].\n\nDalam penelitian ini, model probabilistik digunakan untuk memperkirakan apakah besok akan hujan atau tidak dari kondisi hari ini, lengkap dengan berapa besar peluang terjadinya hujan tersebut, sehingga hasilnya lebih jelas dan membantu pengambilan keputusan.\n\n\n\n\n2 Pengenalan Dataset\n\nSumber Dataset: Github\n\n\n\n\n\n\n\nTipInformasi Dataset\n\n\n\n\n\n=== Dimensi Dataset ===\n\n\n[1] 35287     7\n\n\n\n=== Proporsi RainTomorrow ===\n\n\n\n        0         1 \n0.7676198 0.2323802 \n\n\n\n\n\n\n\n\n\n\nDataset Cuaca berisi informasi cuaca harian dari berbagai stasiun meteorologi di Australia. Dataset ini merupakan himpunan data cuaca harian yang merekam kondisi atmosfer seperti suhu, kelembaban, dan curah hujan untuk setiap tanggal pengamatan. Data ini relevan karena variabel‐variabel meteorologis tersebut memiliki keterkaitan langsung dengan probabilitas terjadinya hujan pada hari berikutnya.\nVariabel Target - RainTomorrow (Y)\nRainTomorrow adalah variabel biner yang menunjukkan apakah hujan terjadi pada hari berikutnya (1 = hujan, 0 = tidak hujan). Variabel ini digunakan sebagai label utama dalam pemodelan klasifikasi probabilistik.\nVariabel Prediktor (X)\nVariabel prediktor yang digunakan mencakup:\n\nMinTemp: Suhu minimum harian, merepresentasikan kondisi udara dini hari.\nMaxTemp: Suhu maksimum harian yang berkaitan dengan tingkat penguapan.\nRainfall: Curah hujan hari ini, indikator kondisi atmosfer yang masih lembap.\nHumidity9am: Kelembapan udara pagi hari sebagai gambaran awal kondisi atmosfer.\nHumidity3pm: Kelembaban sore hari, sering menjadi indikator penting cuaca esok.\nRainToday: Apakah hari ini hujan (1/0)\n\nVariabel‐variabel ini dipilih karena memiliki dasar meteorologis yang kuat dan potensi kontribusi signifikan dalam memprediksi peluang hujan pada hari berikutnya.\n\n\n\n3 Identifikasi Masalah\nPermasalahan utama dalam penelitian ini adalah menentukan apakah hujan akan terjadi pada hari berikutnya berdasarkan kondisi cuaca hari ini. Dengan memanfaatkan variabel‐variabel meteorologis seperti suhu, kelembaban, dan curah hujan hari ini, diperlukan model yang mampu mengestimasi probabilitas terjadinya hujan secara akurat agar dapat mendukung analisis dan pengambilan keputusan terkait cuaca.\n\n\n\n4 EDA\nExploratory Data Analysis atau Analisis Data Eksplorasi. Ini adalah proses awal dalam analisis data untuk memahami karakteristik, pola, dan hubungan dalam sekumpulan data menggunakan metode statistik dan visualisasi [3].\n\n\n\n\n\n\nNoteExploratory Data Analysis\n\n\n\n\n\n=== HEAD (5 Baris Pertama) ===\n\n\n# A tibble: 5 × 7\n  MinTemp MaxTemp Rainfall Humidity9am Humidity3pm RainToday RainTomorrow\n    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;\n1     5.1    14.3      0            65          47         0            0\n2     1.1    14.5      0.4          99          46         0            0\n3    19.7    26.2      0            48          50         0            0\n4    16.6    28        0            50          41         0            0\n5    14.6    25.3      0            64          67         0            0\n\n\n=== INFO DATASET ===\n\n\nspc_tbl_ [35,287 × 7] (S3: spec_tbl_df/tbl_df/tbl/data.frame)\n $ MinTemp     : num [1:35287] 5.1 1.1 19.7 16.6 14.6 15.7 9.8 18.7 23.6 8.5 ...\n $ MaxTemp     : num [1:35287] 14.3 14.5 26.2 28 25.3 27.3 23.9 27.6 30.1 22.9 ...\n $ Rainfall    : num [1:35287] 0 0.4 0 0 0 0 0 3 0 1.4 ...\n $ Humidity9am : num [1:35287] 65 99 48 50 64 60 53 78 53 62 ...\n $ Humidity3pm : num [1:35287] 47 46 50 41 67 86 29 64 48 41 ...\n $ RainToday   : num [1:35287] 0 0 0 0 0 0 0 1 0 1 ...\n $ RainTomorrow: num [1:35287] 0 0 0 0 0 1 0 0 0 0 ...\n - attr(*, \"spec\")=\n  .. cols(\n  ..   MinTemp = col_double(),\n  ..   MaxTemp = col_double(),\n  ..   Rainfall = col_double(),\n  ..   Humidity9am = col_double(),\n  ..   Humidity3pm = col_double(),\n  ..   RainToday = col_double(),\n  ..   RainTomorrow = col_double()\n  .. )\n - attr(*, \"problems\")=&lt;externalptr&gt; \nNULL\n\n\n=== DESCRIPTIVE STATISTICS ===\n\n\n    MinTemp         MaxTemp         Rainfall        Humidity9am    \n Min.   :-8.50   Min.   :-3.10   Min.   :  0.000   Min.   :  2.00  \n 1st Qu.: 7.70   1st Qu.:17.90   1st Qu.:  0.000   1st Qu.: 57.00  \n Median :12.20   Median :22.40   Median :  0.000   Median : 70.00  \n Mean   :12.31   Mean   :23.05   Mean   :  2.528   Mean   : 69.05  \n 3rd Qu.:17.00   3rd Qu.:28.00   3rd Qu.:  0.800   3rd Qu.: 83.00  \n Max.   :30.50   Max.   :48.10   Max.   :371.000   Max.   :100.00  \n  Humidity3pm       RainToday       RainTomorrow   \n Min.   :  1.00   Min.   :0.0000   Min.   :0.0000  \n 1st Qu.: 38.00   1st Qu.:0.0000   1st Qu.:0.0000  \n Median : 52.00   Median :0.0000   Median :0.0000  \n Mean   : 52.14   Mean   :0.2332   Mean   :0.2324  \n 3rd Qu.: 66.00   3rd Qu.:0.0000   3rd Qu.:0.0000  \n Max.   :100.00   Max.   :1.0000   Max.   :1.0000  \n\n\n=== MISSING VALUES ===\n\n\n     MinTemp      MaxTemp     Rainfall  Humidity9am  Humidity3pm    RainToday \n           0            0            0            0            0            0 \nRainTomorrow \n           0 \n\n\n\n\nHasilnya menunjukkan bahwa data sudah bersih, variabel prediktor memiliki variasi yang memadai, dan variabel target RainTomorrow cenderung tidak seimbang. Temuan ini menjadi dasar dalam menyiapkan data untuk proses pemodelan lebih lanjut.\n\n\n\n\n\nReferences\n\n[1] Biro Publikasi, Jurnal Ilmiah & Informasi Digital, Universitas Medan Area, “Model probabilistik: Konsep, teknik, dan aplikasinya,” Jun. 2024. https://bpjiid.uma.ac.id/2024/06/08/model-probabilistik-konsep-teknik-dan-aplikasinya/ (accessed Nov. 19, 2025).\n\n\n[2] B. Siregar, “Probabilistic models,” 2025. https://bookdown.org/content/a142b172-69b2-436d-bdb0-9da6d046a0f9/03-Classifications.html#intro-to-classification (accessed Nov. 19, 2025).\n\n\n[3] Y. E. Kurniawati, “What is exploratory data analysis?” Jan. 2025. https://sis.binus.ac.id/2025/01/21/39476/ (accessed Nov. 19, 2025).",
+    "crumbs": [
+      "**INTRODUCTION**"
+    ]
+  },
+  {
+    "objectID": "chapter4.html",
+    "href": "chapter4.html",
+    "title": "Logistic Regression",
+    "section": "",
+    "text": "Logistic Regression adalah model linear probabilistik yang digunakan untuk menyelesaikan permasalahan klasifikasi biner. Model ini tidak hanya memprediksi kelas (hujan/tidak hujan), tetapi juga memberikan peluang terjadinya hujan esok hari berdasarkan kondisi cuaca hari ini. Logistic Regression menggunakan fungsi aktivasi logistic (sigmoid) untuk mengubah kombinasi linear fitur menjadi nilai probabilitas 0 dan 1 [1].\nDalam konteks prediksi cuaca, Logistic Regression digunakan untuk memperkirakan kemungkinan terjadinya hujan pada hari berikutnya berdasarkan berbagai variabel cuaca hari ini, seperti suhu, curah hujan, dan kelembapan. Model ini cocok digunakan ketika tujuan analisis tidak hanya mengklasifikasikan, tetapi juga membaca seberapa besar peluang hujan terjadi [1].",
+    "crumbs": [
+      "**MATERI**",
+      "4. Logistic Regression"
+    ]
+  },
+  {
+    "objectID": "chapter4.html#aturan-keputusan",
+    "href": "chapter4.html#aturan-keputusan",
+    "title": "Logistic Regression",
+    "section": "2.1 Aturan Keputusan",
+    "text": "2.1 Aturan Keputusan\nModel menetapkan prediksi kelas sebagai berikut:\n\\[\n[\n\\hat{y} =\n\\begin{cases}\n1, & \\text{jika } P(Y = 1 \\mid x) \\ge 0.5 \\\n0, & \\text{jika } P(Y = 1 \\mid x) &lt; 0.5\n\\end{cases}\n]\n\\]\n\nJika peluang hujan ≥ 50%, model memprediksi “hujan”. Jika kurang dari itu, “tidak hujan”.",
+    "crumbs": [
+      "**MATERI**",
+      "4. Logistic Regression"
+    ]
+  },
+  {
+    "objectID": "chapter4.html#proses-pelatihan-model",
+    "href": "chapter4.html#proses-pelatihan-model",
+    "title": "Logistic Regression",
+    "section": "2.2 Proses Pelatihan Model",
+    "text": "2.2 Proses Pelatihan Model\nParameter ( \\(\\beta\\) ) dipelajari dengan cara memaksimalkan likelihood (probabilitas model sesuai dengan data). Umumnya hal ini dilakukan dengan meminimalkan negative log-likelihood berikut:\n\\[\nL(\\beta) = - \\sum_{i=1}^{n} \\left[ y_i \\log P(y_i \\mid x_i) + (1 - y_i) \\log (1 - P(y_i \\mid x_i)) \\right]\n\\]\nTujuan model adalah mencari nilai koefisien ( \\(\\beta\\) ) yang membuat prediksi probabilitas paling sesuai dengan pola data cuaca yang sebenarnya.\n\n\n\n\n\n\nNoteKarakteristik Logistik Regresi\n\n\n\n\nMenghasilkan batasan keputusan linier → decision boundary berupa garis lurus (atau hyperplane) di ruang fitur.\nKoefisien model yang dapat diinterpretasikan → setiap koefisien (β) bisa diubah jadi odds ratio (exp(β)) sehingga mudah dipahami dampaknya.\nDapat diperluas ke klasifikasi multikelas → menggunakan Regresi Softmax (Multinomial Logistic Regression) untuk lebih dari 2 kelas.",
+    "crumbs": [
+      "**MATERI**",
+      "4. Logistic Regression"
+    ]
+  },
+  {
+    "objectID": "chapter4.html#interpretasi",
+    "href": "chapter4.html#interpretasi",
+    "title": "Logistic Regression",
+    "section": "5.1 Interpretasi",
+    "text": "5.1 Interpretasi\nBerikut interpretasi singkat dan jelas dari hasil Logistic Regression pada gambar tersebut:\n\nAccuracy keseluruhan: 82.84%\nModel benar menebak apakah hujan atau tidak hujan di 82.84% kasus (cukup baik untuk data cuaca).\nConfusion Matrix (dalam bentuk tabel):\n\nTrue Negative (TN): 5116 → benar prediksi “Tidak Hujan”\nFalse Positive (FP): 301 → salah prediksi “Hujan” padahal “Tidak Hujan”\nFalse Negative (FN): 910 → salah prediksi “Tidak Hujan” padahal “Hujan”\nTrue Positive (TP): 730 → benar prediksi “Hujan”\n\nPerforma per kelas:\n\nKelas “Tidak Hujan” → Precision tinggi (0.849) → kalau model bilang “Tidak Hujan”, kemungkinan besar benar. Tapi recall rendah (0.695) → banyak kasus “Tidak Hujan” yang tidak terdeteksi (salah diprediksi hujan).\nKelas “Hujan” → Recall tinggi (0.889) → model jarang melewatkan hari hujan (bagus kalau tujuannya tidak ketinggalan prediksi hujan). Tapi precision lebih rendah (0.708) → cukup banyak false alarm (prediksi hujan tapi sebenarnya tidak).\n\nMacro Average F1-score = 0.721\n\nRata-rata performa kedua kelas tanpa mempedulikan jumlah data → model lumayan, tapi tidak terlalu seimbang.\n\nWeighted Average F1-score = 0.813\n\nKarena data sedikit imbalance (lebih banyak hari Hujan = 1640 vs Tidak Hujan = 817), weighted average lebih tinggi dan mendekati accuracy.",
+    "crumbs": [
+      "**MATERI**",
+      "4. Logistic Regression"
+    ]
+  },
+  {
+    "objectID": "chapter4.html#interpretasi-1",
+    "href": "chapter4.html#interpretasi-1",
+    "title": "Logistic Regression",
+    "section": "6.1 Interpretasi",
+    "text": "6.1 Interpretasi\nInterpretasi dari scatter plot MinTemp vs MaxTemp (setelah distandarisasi) ini:\n\nAda korelasi positif yang sangat kuat antara MinTemp dan MaxTemp\nSemakin tinggi suhu minimum, semakin tinggi pula suhu maksimum hari itu (bentuk cloud memanjang dari kiri bawah ke kanan atas).\nDecision boundary Logistic Regression pasti berupa garis lurus\nKarena Logistic Regression adalah model linier di ruang fitur, batas keputusannya adalah satu garis lurus (atau miring) yang memisahkan biru dan orange.\nPemisahan kedua kelas cukup baik tapi tidak sempurna\n\nHijau (“Tidak Hujan”) lebih banyak di kiri bawah (suhu rendah).\n\nToska (“Hujan”) lebih banyak di kanan atas (suhu tinggi).\nArtinya: hari yang lebih panas (baik min maupun max) cenderung lebih sering hujan.\n\nAda overlap yang cukup besar di tengah-tengah\nBanyak titik biru dan orange bercampur di area tengah (MinTemp scaled -1 sampai 1). Inilah penyebab accuracy “hanya” ~83% (lihat hasil sebelumnya). Model tidak bisa memisahkan 100% karena memang ada overlap alami.\nModel sudah menangkap pola utama\nGaris lurus yang optimal kemungkinan besar miring ke atas (slope positif), sesuai dengan tren data. Jadi walaupun sederhana, Logistic Regression sudah cukup efektif di sini karena pola utamanya memang mendekati linier.",
+    "crumbs": [
+      "**MATERI**",
+      "4. Logistic Regression"
+    ]
+  },
+  {
+    "objectID": "chapter2.html#interpretasi",
+    "href": "chapter2.html#interpretasi",
+    "title": "Linear Discriminant Analysis (LDA)",
+    "section": "6.1 Interpretasi",
+    "text": "6.1 Interpretasi\nAccuracy : 0.8290 / 0.830\nArtinya:\nDari seluruh data uji, 82.9% prediksi model benar.\nAkurasi ini cukup baik, terutama untuk dataset dengan ketidakseimbangan kelas (kelas 0 jauh lebih banyak dibanding kelas 1).\n\nkelas 0 = tidak hujan besok\nPrecision 0.849 → dari seluruh prediksi Tidak Hujan, 84.9% benar.\nRecall 0.946 → dari seluruh data yang sebenarnya Tidak Hujan, 94.6% berhasil terdeteksi.\nF1-Score tinggi (0.895) → model sangat baik pada kelas mayoritas ini. Model sangat baik mendeteksi hari tanpa hujan.\n\nKelas 1 = Hujan Besok\nPrecision 0.712 → dari seluruh prediksi Hujan, 71.2% benar. (cukup bagus)\nRecall 0.444 → dari seluruh hari yang sebenarnya hujan, model hanya mendeteksi 44.4% (rendah)\nF1-Score 0.547 → kinerja sedang, karena recall rendah.\nModel masih kesulitan mendeteksi hari hujan, karena kelas ini jumlahnya lebih sedikit (kelas minoritas).\n\nMacro Average:\nMenghitung rata-rata tanpa mempertimbangkan jumlah data tiap kelas.\nRecall rendah (0.69) menunjukkan ketidakseimbangan kelas mempengaruhi deteksi hujan.\nMacro F1 = 0.72 → performa rata-rata model moderat.\n\nweighted average:\n\nMenghitung rata-rata dengan bobot sesuai jumlah data tiap kelas.\nDominasi kelas 0 (Tidak Hujan) membuat nilai weighted lebih tinggi.\nWeighted F1 = 0.81 → performa keseluruhan sangat baik.",
+    "crumbs": [
+      "**MATERI**",
+      "2. Linear Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter2.html#interpretasi-1",
+    "href": "chapter2.html#interpretasi-1",
+    "title": "Linear Discriminant Analysis (LDA)",
+    "section": "7.1 Interpretasi",
+    "text": "7.1 Interpretasi\nMakna Warna\n\nHijau = Tidak Hujan\nBiru = Hujan\n\nPola\n\nTitik biru (hujan) cenderung berada di sisi kiri bawah = suhu minimum rendah + suhu maksimum tidak terlalu tinggi.\nSebagian titik berada di sisi atas = Prediksi Tidak Hujan Tinggi",
+    "crumbs": [
+      "**MATERI**",
+      "2. Linear Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter1.html#rumus-umum-naive-bayes",
+    "href": "chapter1.html#rumus-umum-naive-bayes",
+    "title": "Naive Bayes",
+    "section": "3.1 Rumus Umum Naive Bayes",
+    "text": "3.1 Rumus Umum Naive Bayes\n\\[\n{P(y | x_1, x_2, \\dots, x_n) \\propto P(y) \\prod_{i=1}^{n} P(x_i | y)}\n\\]\n\n\\((P(y \\mid x_1, ..., x_n))\\) → Probabilitas prediksi yang kita cari. Contoh: peluang besok hujan berdasarkan fitur cuaca.\n\\((\\propto)\\) → “Sebanding”, tidak perlu hitung pembaginya. Fokus cuma bandingin skor kelas 1 vs 0.\n\\((P(y))\\) → Prior, yaitu seberapa sering kelas itu muncul di data.\n\\((\\prod P(x_i \\mid y))\\) → Perkalian semua probabilitas fitur. Contoh: probabilitas MinTemp × probabilitas Humidity × seterusnya.\n\\((P(x_i \\mid y))\\) → Probabilitas satu fitur kalau kelasnya y.\n\\((x_1, ..., x_n)\\) → Fitur-fitur yang digunakan model. Contoh: MinTemp, MaxTemp, Humidity, RainToday.\n\\((y)\\) → Kelas/label yang ingin diprediksi. Contoh: RainTomorrow (0 = tidak hujan, 1 = hujan) [2].",
+    "crumbs": [
+      "**MATERI**",
+      "1. Naive Bayes"
+    ]
+  },
+  {
+    "objectID": "chapter1.html#kelas-yang-diprediksi",
+    "href": "chapter1.html#kelas-yang-diprediksi",
+    "title": "Naive Bayes",
+    "section": "3.2 Kelas Yang Diprediksi",
+    "text": "3.2 Kelas Yang Diprediksi\n\\[\n{\\hat{y} = \\arg\\max_y P(y) \\prod_{i=1}^{n} P(x_i | y)}\n\\]\n\n\n\n\n\n\n\n\nKomponen\nPenjelasan\nContoh Dataset\n\n\n\n\n\\(\\hat{y}\\)\nKelas prediksi (hasil akhir model).\n\\(\\hat{y} = 1\\) (besok hujan) atau 0 (tidak hujan).\n\n\n\\(\\arg\\max_y\\)\nMemilih kelas \\(y\\) yang menghasilkan nilai perkalian tertinggi.\nJika skor untuk \\(y=1\\) &gt; skor untuk \\(y=0\\), prediksi hujan besok.\n\n\n\\(P(y) \\prod P(x_i \\| y)\\)\nSkor probabilitas untuk setiap kelas.\nSkor(1) = \\(P(1) \\times P(\\text{Rainfall=0}\\|1) \\times \\dots\\); bandingkan dengan skor(0).\n\n\n\n\n\n\n\n\n\nNoteKarakteristik Naive Bayes\n\n\n\n\nGaussian Naive Bayes → Varian algoritma Naive Bayes yang menggunakan distribusi Gaussian (distribusi normal) dan variabel kontinu. Model ini digunakan untuk mencari rata-rata dan standar deviasi dari masing-masing kelas.\nMultinomial Niave Bayes → Varian ini berguna saat menggunakan data diskrit, seperti jumlah frekuensi, dan biasanya diterapkan dalam kasus penggunaan pemrosesan bahasa alami (natural language processing/NLP), seperti klasifikasi spam pada e-mail.\nBernouli Naive Bayes → Varian ini menggunakan variabel Boolean, yaitu variabel dengan dua nilai, seperti Benar dan Salah atau 1 dan 0 [3].",
+    "crumbs": [
+      "**MATERI**",
+      "1. Naive Bayes"
+    ]
+  },
+  {
+    "objectID": "chapter1.html#interpretasi",
+    "href": "chapter1.html#interpretasi",
+    "title": "Naive Bayes",
+    "section": "6.1 Interpretasi",
+    "text": "6.1 Interpretasi\nAccuracy = 0.7934 (79.34%)\nModel Naive Bayes mampu memprediksi dengan benar sekitar 79% dari seluruh data uji. Ini menunjukkan performa yang cukup baik, terutama mengingat dataset cuaca biasanya memiliki distribusi kelas yang tidak seimbang.\n\nEvaluasi Per Kelas\nModel memprediksi dua kelas:\n\n0 = Tidak Hujan Besok\n1 = Hujan Besok\n\nKelas 0 (Tidak Hujan Besok)\n\n\n\nMetric\nNilai\n\n\n\n\nPrecision\n0.847\n\n\nRecall\n0.892\n\n\nF1-score\n0.869\n\n\nSupport\n5417\n\n\n\nInterpretasi:\n\nPrecision 0.847 → Dari seluruh prediksi Tidak Hujan, 84.7% benar.\nRecall 0.892 → Dari seluruh kejadian Tidak Hujan, model menangkap 89.2%.\nF1-score 0.869 → Performa keseluruhan sangat baik.\nSupport 5417 → Data kelas 0 lebih banyak dibanding kelas 1.\n\nModel sangat bagus mendeteksi kondisi “Tidak Hujan” Ini wajar karena jumlah datanya banyak (dominant class).\n\nKelas 1 (Hujan Besok)\n\n\n\nMetric\nNilai\n\n\n\n\nPrecision\n0.567\n\n\nRecall\n0.468\n\n\nF1-score\n0.513\n\n\nSupport\n1640\n\n\n\nInterpretasi:\n\nPrecision 0.567 → Ketika model memprediksi “Hujan”, hanya 56.7% yang benar.\nRecall 0.468 → Dari semua kejadian hujan, model hanya mendeteksi 46.8%.\nF1-score 0.513 → Performa cukup rendah.\n\nModel masih kesulitan mendeteksi hari yang benar-benar hujan. Ini biasa terjadi karena:\n\nData hujan jauh lebih sedikit (class imbalance).\nNaive Bayes sensitif terhadap distribusi fitur.\n\n\nMacro Average\n\n\n\nPrecision\nRecall\nF1-score\n\n\n\n\n0.707\n0.680\n0.691\n\n\n\nInterpretasi:\n\nMacro avg menghitung rata-rata tanpa melihat jumlah data masing-masing kelas.\nNilai sekitar 0.68–0.71, menunjukkan performa keseluruhan model moderat.\n\nIni juga menunjukkan bahwa kelas minoritas (hujan) menurunkan nilai rata-rata secara signifikan.\n\nWeighted Average\n\n\n\nPrecision\nRecall\nF1-score\n\n\n\n\n0.782\n0.793\n0.786\n\n\n\nInterpretasi:\n\nWeighted avg memberi bobot sesuai jumlah data tiap kelas.\nKarena kelas 0 mendominasi, nilai rata-rata jadi tinggi (≈ 0.78).\nIni menggambarkan bahwa model lebih baik di kelas dominan.\n\nWeighted average yang lebih tinggi dari macro menegaskan bahwa: Model “terlalu nyaman” memprediksi kelas mayoritas.\n\nSupport = 7057\nTotal data uji = 7057 sampel. Distribusi:\n\nTidak hujan: 5417 (76.7%)\nHujan: 1640 (23.2%)\n\nOutput ini memperlihatkan imbalance yang kuat, dan ini menjelaskan kenapa model lebih bagus di kelas 0 daripada kelas 1.\n\nKesimpulan Utama\n\nNaive Bayes cukup akurat (79%).\nModel cukup baik memprediksi hari yang tidak hujan.\nModel kurang baik memprediksi hari yang akan hujan: recall hanya 46%.\nDistribusi data yang tidak seimbang menyebabkan model condong ke kelas mayoritas.\nSecara keseluruhan, performa moderat → baik untuk baseline, tapi masih bisa ditingkatkan.",
+    "crumbs": [
+      "**MATERI**",
+      "1. Naive Bayes"
+    ]
+  },
+  {
+    "objectID": "chapter3.html",
+    "href": "chapter3.html",
+    "title": "Quadratic Discriminant Analysis",
+    "section": "",
+    "text": "QDA adalah Metode klasifikasi supervised yang menggunakan fungsi diskriminan kuadratik. Setiap kelas memiliki kovarians sendiri, sehingga batas pemisah antar kelas bisa non-linear. Data tiap kelas mengikuti distribusi normal multivariat. dan Lebih fleksibel, tetapi rentan overfitting pada dataset kecil [1]-[2].",
+    "crumbs": [
+      "**MATERI**",
+      "3. Quadratic Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter3.html#rumus-qda-kelas-k",
+    "href": "chapter3.html#rumus-qda-kelas-k",
+    "title": "Quadratic Discriminant Analysis",
+    "section": "2.1 Rumus QDA Kelas \\(k\\)",
+    "text": "2.1 Rumus QDA Kelas \\(k\\)\nUntuk kelas k, probabilitas bersyarat [2].\n\\[\nP(x \\mid y = k) =\n\\frac{1}{(2\\pi)^{d/2} |\\Sigma_k|^{1/2}}\n\\exp\\left(\n-\\frac{1}{2} (x - \\mu_k)^T \\Sigma_k^{-1} (x - \\mu_k)\n\\right)\n\\]",
+    "crumbs": [
+      "**MATERI**",
+      "3. Quadratic Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter3.html#fungsi-keputusan-qda",
+    "href": "chapter3.html#fungsi-keputusan-qda",
+    "title": "Quadratic Discriminant Analysis",
+    "section": "2.2 Fungsi Keputusan QDA",
+    "text": "2.2 Fungsi Keputusan QDA\n\\[\n\\delta_k(x) =\n-\\frac{1}{2} \\log |\\Sigma_k|\n-\\frac{1}{2} (x - \\mu_k)^T \\Sigma_k^{-1} (x - \\mu_k)\n+ \\log P(y = k)\n\\]",
+    "crumbs": [
+      "**MATERI**",
+      "3. Quadratic Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter3.html#interpretasi",
+    "href": "chapter3.html#interpretasi",
+    "title": "Quadratic Discriminant Analysis",
+    "section": "5.1 Interpretasi",
+    "text": "5.1 Interpretasi\n\nModel QDA menghasilkan akurasi sekitar 81%, menunjukkan performa yang cukup baik dalam memprediksi cuaca.\nModel lebih akurat memprediksi “tidak hujan besok” dibandingkan “hujan besok”.\nHal ini disebabkan oleh ketidakseimbangan data, di mana kategori tidak hujan jauh lebih banyak sehingga lebih mudah dikenali oleh model.\nMeskipun akurasinya terlihat tinggi, keakuratan untuk mendeteksi hari yang benar-benar akan hujan masih terbatas.",
+    "crumbs": [
+      "**MATERI**",
+      "3. Quadratic Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter3.html#interpretasi-1",
+    "href": "chapter3.html#interpretasi-1",
+    "title": "Quadratic Discriminant Analysis",
+    "section": "6.1 Interpretasi",
+    "text": "6.1 Interpretasi\n\nVisualisasi menunjukkan bahwa titik data hujan dan tidak hujan banyak yang saling bercampur, terutama pada rentang suhu tertentu.\nBatas keputusan yang terbentuk cenderung membesar pada area tidak hujan, yang berarti model lebih yakin pada prediksi kategori tersebut.\nPola yang tumpang tindih menunjukkan bahwa variabel suhu belum mampu membedakan secara jelas antara kondisi hujan dan tidak hujan.",
+    "crumbs": [
+      "**MATERI**",
+      "3. Quadratic Discriminant Analyis"
+    ]
+  },
+  {
+    "objectID": "chapter5.html",
+    "href": "chapter5.html",
+    "title": "Perbandingan dan Evaluasi",
+    "section": "",
+    "text": "NotePerbandingan 4 Model\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nModel\nAccuracy\nPrecision (Hujan)\nRecall (Hujan)\nF1-Score (Hujan)\nMacro F1\n\n\n\n\nLinear Discriminant Analysis (LDA)\n0.8290\n0.712\n0.444\n0.547\n0.720\n\n\nLogistic Regression\n0.8284\n0.708\n0.445\n0.541\n0.721\n\n\nQuadratic Discriminant Analysis (QDA)\n0.8113\n0.649\n0.410\n0.502\n0.693\n\n\nNaive Bayes (Gaussian)\n0.7934\n0.567\n0.468\n~0.513\n0.691",
+    "crumbs": [
+      "**MATERI**",
+      "5. Perbandingan"
+    ]
+  },
+  {
+    "objectID": "chapter5.html#interpretasi",
+    "href": "chapter5.html#interpretasi",
+    "title": "Perbandingan dan Evaluasi",
+    "section": "3.1 Interpretasi",
+    "text": "3.1 Interpretasi\nROC = Receiver Operating Characteristic Curve AUC = Area Under the Curve\n→ Jadi ROC AUC adalah luas di bawah kurva ROC (nilainya antara 0 sampai 1).\nBerdasarkan hasil evaluasi empat model probabilistik (Logistic Regression, LDA, QDA, dan Naive Bayes), dapat disimpulkan bahwa Logistic Regression menjadi model dengan performa keseluruhan terbaik untuk memprediksi variabel RainTomorrow pada dataset cuaca Australia.\n1. Logistic Regression – Model Terbaik Secara Umum\nLogistic Regression menunjukkan performa paling stabil dan unggul pada sebagian besar metrik penting:\n\nAccuracy tertinggi: 0.8284\nPrecision tertinggi: 0.7081\nF1-Score tertinggi: 0.5466\nROC-AUC tertinggi: 0.8116\n\nKombinasi metrik ini menunjukkan bahwa Logistic Regression tidak hanya akurat, tetapi juga mampu memberikan prediksi probabilitas yang baik dan konsisten. Meskipun recall-nya bukan yang tertinggi, performanya tetap paling seimbang dibanding model lainnya.\n\n2. Linear Discriminant Analysis (LDA) – Performa yang Sangat Dekat\nLDA berada tepat di bawah Logistic Regression dengan selisih yang sangat kecil.\n\nAccuracy: 0.8254 (hanya selisih 0.003 dari Logistic Regression)\nRecall: 0.4665 (salah satu yang tertinggi)\n\nLDA menjadi model yang paling sensitif untuk mendeteksi hari yang benar-benar hujan. Model ini cocok ketika tujuan utamanya adalah mengurangi risiko salah mendeteksi hujan (lebih baik “false alarm” daripada melewatkan hujan).\n\n3. Quadratic Discriminant Analysis (QDA) – Overfitting pada Dataset Ini\nMeskipun QDA secara teori lebih fleksibel karena batas keputusannya berbentuk kuadratik, hasilnya justru kurang optimal:\n\nAccuracy: 0.8113\nF1-Score: 0.5022\n\nQDA cenderung overfit karena kelas hujan memiliki jumlah sampel yang lebih sedikit, sehingga estimasi matriks kovarians terpisah menjadi kurang stabil.\n\n4. Naive Bayes – Performa Terendah\nNaive Bayes menjadi model dengan performa keseluruhan terlemah:\n\nAccuracy terendah: 0.7934\nPrecision paling rendah: 0.5673\nRecall tertinggi: 0.4677\n\nMeskipun recall-nya paling tinggi, model ini memiliki precision dan akurasi yang rendah karena asumsi independensi antar fitur tidak sesuai dengan karakteristik data cuaca yang cenderung saling berkorelasi.\n\n\nSecara keseluruhan, Logistic Regression dipilih sebagai model terbaik berdasarkan akurasi, F1-score, dan ROC-AUC yang paling tinggi. Hasil ini menunjukkan bahwa hubungan antara fitur cuaca dan peluang hujan bersifat cukup linear sehingga model linear seperti Logistic Regression sudah memadai tanpa memerlukan kompleksitas tambahan seperti QDA. Selain itu, Logistic Regression memberikan interpretasi probabilitas yang jelas dan stabil, membuatnya ideal untuk tugas prediksi RainTomorrow.",
+    "crumbs": [
+      "**MATERI**",
+      "5. Perbandingan"
+    ]
+  }
+]

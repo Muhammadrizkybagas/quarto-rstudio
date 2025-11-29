@@ -1,0 +1,307 @@
+---
+title: "Quadratic Discriminant Analysis"
+date: today
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# 1. IMPORT LIBRARIES
+library(tidyverse)
+library(caret)
+library(MASS)
+library(e1071)
+library(plotly)
+```
+
+# Pengertian
+
+QDA adalah Metode klasifikasi supervised yang menggunakan fungsi diskriminan kuadratik. Setiap kelas memiliki kovarians sendiri, sehingga batas pemisah antar kelas bisa non-linear. Data tiap kelas mengikuti distribusi normal multivariat. dan Lebih fleksibel, tetapi rentan overfitting pada dataset kecil [@stanford2025qda]-[@siregar2025qda].
+
+# Rumus
+
+## Rumus QDA Kelas *$k$*
+
+Untuk kelas *k*, probabilitas bersyarat <a href="https://bookdown.org/content/a142b172-69b2-436d-bdb0-9da6d046a0f9/03-Classifications.html#qda">[2]</a>.
+
+$$
+P(x \mid y = k) =
+\frac{1}{(2\pi)^{d/2} |\Sigma_k|^{1/2}}
+\exp\left(
+-\frac{1}{2} (x - \mu_k)^T \Sigma_k^{-1} (x - \mu_k)
+\right)
+$$
+
+## Fungsi Keputusan QDA
+
+$$
+\delta_k(x) =
+-\frac{1}{2} \log |\Sigma_k|
+-\frac{1}{2} (x - \mu_k)^T \Sigma_k^{-1} (x - \mu_k)
++ \log P(y = k)
+$$
+
+# Manfaat
+
+- Untuk klasifikasi data dengan hubungan fitur-ke-kelas non-linear.
+- Menangkap perbedaan kovarians antar kelas.
+- Memberikan pemisahan lebih baik dibanding LDA jika asumsi kovarians sama tidak valid [@stanford2025qda].
+
+# Kapan Digunakan?
+
+- Kelas memiliki kovarians berbeda.
+- Dataset cukup besar untuk estimasi kovarians stabil.
+- Hubungan antar fitur bersifat non-linear.-
+- Kurang cocok untuk dataset kecil atau jumlah sampel per kelas sedikit [@stanford2025qda].
+
+# Hasil Klasifikasi QDA
+
+::: {.callout-tip title="Hasil Klasifikasi QDA"}
+ 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# ============================================================
+# LOAD DATA
+# ============================================================
+df <- read.csv("data/dataset-cuaca.csv")
+
+features <- c("MinTemp", "MaxTemp", "Rainfall", "Humidity9am", "Humidity3pm", "RainToday")
+X <- df[, features]
+y <- as.factor(df$RainTomorrow)
+
+# ============================================================
+# TRAIN-TEST SPLIT
+# ============================================================
+set.seed(42)
+train_index <- caret::createDataPartition(y, p = 0.8, list = FALSE)
+
+X_train <- X[train_index, ]
+X_test  <- X[-train_index, ]
+y_train <- y[train_index]
+y_test  <- y[-train_index]
+
+# ============================================================
+# NORMALISASI
+# ============================================================
+scaler <- caret::preProcess(X_train, method = c("center", "scale"))
+X_train_scaled <- predict(scaler, X_train)
+X_test_scaled  <- predict(scaler, X_test)
+X_scaled       <- predict(scaler, X)   # untuk visualisasi
+
+# ============================================================
+# TRAIN QDA
+# ============================================================
+qda_model <- qda(X_train_scaled, grouping = y_train)
+
+# ============================================================
+# PREDIKSI
+# ============================================================
+y_pred <- predict(qda_model, X_test_scaled)$class
+
+# ============================================================
+# EVALUASI MANUAL (FORMAT RAPI)
+# ============================================================
+cm <- table(True = y_test, Pred = y_pred)
+
+get_PRF <- function(cm, kelas) {
+  TP <- cm[kelas, kelas]
+  FP <- sum(cm[, kelas]) - TP
+  FN <- sum(cm[kelas, ]) - TP
+  
+  precision <- ifelse(TP + FP == 0, 0, TP / (TP + FP))
+  recall    <- ifelse(TP + FN == 0, 0, TP / (TP + FN))
+  f1        <- ifelse(precision + recall == 0, 0,
+                      2 * precision * recall / (precision + recall))
+  
+  support <- sum(cm[kelas, ])
+  
+  return(c(precision, recall, f1, support))
+}
+
+kelas <- rownames(cm)
+
+metric_res <- t(sapply(kelas, function(k) get_PRF(cm, k)))
+colnames(metric_res) <- c("precision", "recall", "f1_score", "support")
+rownames(metric_res) <- kelas
+
+macro_avg <- colMeans(metric_res[, 1:3])
+
+weights <- metric_res[, 4] / sum(metric_res[, 4])
+weighted_avg <- colSums(metric_res[, 1:3] * weights)
+
+accuracy <- sum(diag(cm)) / sum(cm)
+
+# ============================================================
+# PRINT OUTPUT
+# ============================================================
+cat("============================================================\n")
+cat("HASIL KLASIFIKASI QDA\n")
+cat("============================================================\n")
+cat(sprintf("Accuracy: %.4f\n\n", accuracy))
+
+print(round(metric_res, 3))
+
+cat("\nMacro Average\n")
+print(round(macro_avg, 3))
+
+cat("\nWeighted Average\n")
+print(round(weighted_avg, 3))
+
+cat("\nTotal Support:", sum(metric_res[, 4]), "\n")
+
+
+```
+:::
+
+## Interpretasi
+
+- Model QDA menghasilkan akurasi sekitar 81%, menunjukkan performa yang cukup baik dalam memprediksi cuaca.
+- Model lebih akurat memprediksi **“tidak hujan besok”** dibandingkan **“hujan besok”**.
+- Hal ini disebabkan oleh **ketidakseimbangan data**, di mana kategori tidak hujan jauh lebih banyak sehingga lebih mudah dikenali oleh model.
+- Meskipun akurasinya terlihat tinggi, keakuratan untuk mendeteksi hari yang benar-benar akan hujan masih terbatas.
+
+
+# Visualisasi
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# ============================================================
+# VISUALISASI DECISION BOUNDARY
+# ============================================================
+
+# Range scaled
+x_min <- min(X_scaled$MinTemp) - 1
+x_max <- max(X_scaled$MinTemp) + 1
+y_min <- min(X_scaled$MaxTemp) - 1
+y_max <- max(X_scaled$MaxTemp) + 1
+
+xx <- seq(x_min, x_max, by = 0.05)
+yy <- seq(y_min, y_max, by = 0.05)
+
+grid <- expand.grid(
+  MinTemp = xx,
+  MaxTemp = yy
+)
+
+# Mean fitur lain
+mean_other <- colMeans(X_scaled[, c("Rainfall", "Humidity9am", "Humidity3pm", "RainToday")])
+
+X_mesh <- cbind(
+  grid,
+  Rainfall    = mean_other[1],
+  Humidity9am = mean_other[2],
+  Humidity3pm = mean_other[3],
+  RainToday   = mean_other[4]
+)
+
+# Prediksi QDA untuk meshgrid
+qda_pred <- predict(qda_model, X_mesh)
+Z <- as.numeric(qda_pred$class)
+Z_matrix <- matrix(Z, nrow = length(xx), ncol = length(yy))
+
+# Plot
+fig_boundary <- plot_ly()
+
+fig_boundary <- fig_boundary %>%
+  add_contour(
+    z = Z_matrix,
+    x = xx,
+    y = yy,
+    showscale = FALSE,
+    opacity = 0.45,
+    colorscale = list(c(0, "#0046FF"), c(1, "#FF9013"))
+  ) %>%
+  add_trace(
+    type = "scatter",
+    mode = "markers",
+    x = X_scaled$MinTemp,
+    y = X_scaled$MaxTemp,
+    marker = list(
+      color = as.numeric(y),
+      colorscale = list(c(0, "#0046FF"), c(1, "#FF9013")),
+      showscale = TRUE,
+      colorbar = list(
+        title = "RainTomorrow",
+        tickvals = c(0, 1),
+        ticktext = c("Tidak Hujan", "Hujan")
+      )
+    ),
+    name = "Data"
+  ) %>%
+  layout(
+    title = "Decision Boundary QDA (MinTemp vs MaxTemp)",
+    xaxis = list(title = "Scaled MinTemp"),
+    yaxis = list(title = "Scaled MaxTemp")
+  )
+
+fig_boundary
+
+
+```
+
+## Interpretasi
+
+- Visualisasi menunjukkan bahwa titik data `hujan` dan `tidak hujan` banyak yang saling bercampur, terutama pada rentang suhu tertentu.
+- Batas keputusan yang terbentuk cenderung membesar pada area tidak hujan, yang berarti model lebih yakin pada prediksi kategori tersebut.
+- Pola yang tumpang tindih menunjukkan bahwa variabel suhu belum mampu membedakan secara jelas antara kondisi hujan dan tidak hujan.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
